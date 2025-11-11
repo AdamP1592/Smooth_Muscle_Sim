@@ -1,4 +1,4 @@
-class physics_object{
+class physicsObject{
     constructor(x, y, weight){
         this.x = x;
         this.y = y;
@@ -13,16 +13,22 @@ class physics_object{
         this.force_y = 0;
     }
     move(delta_t){
-        let acceleration_x = this.mass * this.force_x;
-        let acceleration_y = this.mass * this.force_y;
+        // f = ma a = f/m
+        let acceleration_x =  this.force_x / this.mass;
+        let acceleration_y = this.force_y / this.mass;
 
         //since it's simplified with an assumed low t value w/ eulers method
         let delta_x = acceleration_x * (delta_t^2);
         let delta_y = acceleration_y * (delta_t^2);
 
+        x += delta_x;
+        y += delta_y;
+
+        this.force_x = 0;
+        this.force_y = 0;
         return true;
     }
-    addForce(force_x, force_y){
+    addForce(force_x, force_y){  
         this.force_x += force_x;
         this.force_y += force_y;
 
