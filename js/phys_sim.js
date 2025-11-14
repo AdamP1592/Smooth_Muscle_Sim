@@ -1,8 +1,10 @@
 class PhysicsSim{
     constructor(){
+        //objects in this case are things that move
         this.fixedObjects = []
         this.moveableObjects = []
-        this.forceAddingObjects = []
+        //elements in this case are things that cause movement
+        this.forceAddingElements = [] 
         this.objects = []
     }
     createFixedSquare(x, y){
@@ -21,8 +23,20 @@ class PhysicsSim{
         this.fixedObjects.push(rect)
         this.objects.push(rect)
     }
-    create_muscle(x, y){
-    
+    createMuscle(obj1, obj2, index1, index2){
+
+        //prevent duplicates
+        for(let i = 0; i < this.forceAddingElements.length; i++){
+            let m = this.forceAddingElements[i];
+            //index 1 and index 2 will always be in order of least to greatest
+            if(m.index1 == index1 && m.index2 == index2){
+                console.log("Duplicate muscle");
+                return;
+            }
+        }
+
+        let newMuscle = new Muscle(index1, index2, obj1.x, obj1.y, obj2.x, obj2.y);
+        this.forceAddingElements.push(newMuscle)
     }
 }
 class Rect{
@@ -32,6 +46,9 @@ class Rect{
         this.x = x;
         this.y = y;
         this.moveable = false;
+
+        this.color = '#575757ff'
+        this.border = false;
     }
     update(t){
         //update position function
@@ -46,6 +63,8 @@ class MoveableRect extends Rect{
         this.weight = weight;
         this.phyiscs = new physicsObject(x, y, weight);
         this.moveable = true;
+
+        this.color = '#f1ff74ff'
     }
     addForce(forceX, forceY){
         this.phyiscs.addForce(forceX, forceY)
@@ -58,57 +77,37 @@ class MoveableRect extends Rect{
         return [this.phyiscs.x, this.phyiscs.y]
     }
 }
-class muscle_obj{
+class Muscle{
     
-    constructor(connectedObjects){
-    
-        if (connectedObjects.length != 2){
-            console.error("Muscle must be attached at two points")
-        }
-        this.moveableObjects = []
-        this.fixedObjects = []
+    constructor(index1, index2, obj1X, obj1Y, obj2X, obj2Y){
 
-        this.connectedObjects = connectedObjects;
+        this.index1 = index1;
+        this.index2 = index2;
 
-        for(let obj in connectedObjects){
-            if(obj.moveable){
-                this.moveableObjects.append(obj);
-            }
-            else{
-                this.fixedObjects.append(obj);
-            }
-        }
-        
-        let obj1 = connectedObjects[0];
-        let obj2 = connectedObjects[1];
-
-        let euclid_distance = sqrt( ((obj1.x - obj2.x)^ 2) + ((obj1.y - obj2.y) ^ 2))
-
+        let euclid_distance = Math.sqrt( ((obj1X - obj2X)^ 2) + ((obj1Y - obj2Y) ^ 2))
 
         this.muscle = new fiber();
         this.muscle.length = euclid_distance;
         
     }
-    update(t){
+    //returns the force vector for obj2
+    update(obj1, obj2, t){
         //contraction force
         let force = this.muscle.contract(t);
         
         //break down force into component forces
-        let deltaY = 0;
-        if(this.connectedObjects[0] > this.connectedObjects[1]){
-            deltaY = this.connectedObjects[0].y - this.connectedObjects[1].y;
-        }else{
-            deltaY = this.connectedObjects[1].y - this.connectedObjects[0].y;
-        }
-        
-        let direction = Math.asin(deltaY/this.muscle.length);
-        let forceX = cos(direction) * force;
-        let forceY = sin(direction) * force;
 
-        //apply force to each
-        for(let obj in this.moveableObjects){
-            obj.addForce(forceX, forceY);
-        }
+        let dx = obj2.x - obj1.x;
+        let dy = obj2.y - obj1.y;
+
+        let ux = dx/this.muscle.length;
+        let uy = dy/this.muscle.length;
+        
+        let forceX = ux * force;
+        let forceY = uy * force;
+
+        //return to the sim to apply force to the objects
+        return [forceX, forceY]
         
     }
 }

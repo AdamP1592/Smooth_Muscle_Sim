@@ -5,6 +5,8 @@ var ctx = null;
 var sim = null;
 var scalingFactor = null;
 
+var controlPressed = false;
+
 var rect = null;
 
 var lastFrameTime = null;
@@ -74,16 +76,36 @@ function convertRawCoordsToCanvas(x, y){
 
   return [xCanvas, yCanvas]
 }
+function drawMuscles(){
+  for(let i = 0; i < sim.forceAddingElements.length; i++){
+    let element = sim.forceAddingElements[i];
+
+    let obj1 = sim.objects[element.index1];
+    let obj2 = sim.objects[element.index2];
+
+    let [obj1X, obj1Y] = convertRawCoordsToCanvas(obj1.x, obj1.y);
+    let [obj2X, obj2Y] = convertRawCoordsToCanvas(obj2.x, obj2.y);
+
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#c21212ff';
+    ctx.lineWidth = 3
+    ctx.moveTo(obj1X + (obj1.width * scalingFactor)/2, obj1Y + (obj1.height * scalingFactor)/2);
+    ctx.lineTo(obj2X + (obj2.width * scalingFactor)/2, obj2Y + (obj2.height * scalingFactor)/2);
+
+    ctx.stroke();
+
+  }
+}
 function drawSquares(){
+  ctx.beginPath();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for(let i = 0; i < sim.objects.length; i++){
-    ctx.fillStyle = '#575757';
-    if(sim.objects[i] instanceof MoveableRect){
-      ctx.fillStyle = '#a72525ff'
-    }
 
     let obj = sim.objects[i];
+
+    ctx.fillStyle = obj.color;
 
     let canvasWidth = obj.width * scalingFactor;
     let canvasHeight = obj.height * scalingFactor;
@@ -92,34 +114,46 @@ function drawSquares(){
     //console.log("Scaled to fit current canvas:");
     //console.log(`CanvasXY: (${yCanvas}, ${yCanvas})`)
 
+
     ctx.fillRect(xCanvas, yCanvas, canvasWidth , canvasHeight);
-
     ctx.fillStyle = '#76acadff';
-
+    if(obj.border){
+      ctx.strokeRect(xCanvas, yCanvas, canvasWidth, canvasHeight);
+    }
     let fontSize =  String(5 * scalingFactor);
     ctx.font = fontSize + 'px bold arial'
     ctx.fillText(i, xCanvas + canvasWidth/2, yCanvas + canvasHeight/2)
     
   }
+  ctx.fill();
+  ctx.stroke();
 }
 
 function draw(currentTime){
   const fps = 30
   let elapsedTime = currentTime - lastFrameTime;
   //1000 ms per second
+
+  
   if (elapsedTime > 1000/fps){
-
-    //start a new path so the old frame gets cleared
+    //clear canvas
     ctx.beginPath();
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fill();
 
-    lastFrameTime = currentTime - (elapsedTime % (1000/fps));
-    //draw all the stuff from the sim
+    // draw muscles
+    drawMuscles();
+
+    // draw rects
 
     drawSquares();
-    ctx.fill();
-    ctx.stroke();
+
+    //draw all the stuff from the sim
+
+    
+
+
+    lastFrameTime = currentTime - (elapsedTime % (1000/fps));
     
   }
   requestAnimationFrame(draw); 
@@ -139,12 +173,86 @@ window.addEventListener("load", function() {
   sim = new PhysicsSim();
   canvas = document.getElementById("phys_sim");
   ctx = canvas.getContext("2d");
+
+  canvas.addEventListener('click', leftClickCanvas);
+
   create_onclick_events();
   lastFrameTime = performance.now();
   resizeCanvas();
   requestAnimationFrame(draw);
-
-
-  
 });
+
+function keyPressed(event){
+  if(event.key === "Control"){
+    controlPressed = true;
+  }
+}
+function keyReleased(event){
+  if(event.key === "Control"){
+    controlPressed = false;
+  }
+}
+
+
+function leftClickCanvas(event) {
+  event.preventDefault();
+
+  const mouseX = event.clientX - canvas.getBoundingClientRect().left;
+  const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+  
+  let borderCount = 0;
+  //to prevent having to index a list
+  let objectsWithBorders = {};
+
+  for(let i = 0; i < sim.objects.length; i++){
+    let obj = sim.objects[i];
+    let [canvasX, canvasY] = convertRawCoordsToCanvas(obj.x, obj.y);
+    
+    let width = obj.width * scalingFactor;
+    let height = obj.height * scalingFactor;
+
+    if(controlPressed){
+      //if there was a square that got clicked
+      if (mouseX >= canvasX && mouseX <= canvasX + width &&
+          mouseY >= canvasY && mouseY <= canvasY + height) {
+          //if it hasn't been clicked yet, add it to the list of clicked
+          if(obj.border == false){
+            obj.border = true;
+            objectsWithBorders[i] = obj;
+            borderCount += 1;
+          }else{
+            //if it has been clicked, remove the border
+            obj.border = false;
+          }
+      }
+      else{
+        //if there is a border on a square and it wasn't clicked
+        if(obj.border){
+          objectsWithBorders[i] = obj;
+          borderCount += 1;
+        }
+      }
+    }
+    //if control is not pressed and someone clicked clear all borders
+    else{
+      obj.border = false;
+    }
+  }
+  if(borderCount > 1){
+    let objects = []
+    for(const key in objectsWithBorders){
+      let obj = objectsWithBorders[key]
+      obj.border = false;
+      objects.push([key, obj])
+    }
+    sim.createMuscle(objects[0][1], objects[1][1], objects[0][0], objects[1][0])
+    console.log(sim.forceAddingElements);
+  }
+
+
+}
+
 window.addEventListener("resize", resizeCanvas)
+
+document.addEventListener("keydown", keyPressed);
+document.addEventListener("keyup", keyReleased);
