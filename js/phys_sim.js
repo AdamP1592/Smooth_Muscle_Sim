@@ -35,7 +35,7 @@ class PhysicsSim{
             }
         }
 
-        let newMuscle = new Muscle(index1, index2, obj1.x, obj1.y, obj2.x, obj2.y);
+        let newMuscle = new SkeletalMuscle(index1, index2, obj1.x, obj1.y, obj2.x, obj2.y);
         this.forceAddingElements.push(newMuscle)
     }
     step(t){
@@ -82,10 +82,10 @@ class Rect{
     }
 }
 class MoveableRect extends Rect{
-    constructor(width, height, x, y, weight){
+    constructor(width, height, x, y, mass){
         super(width, height, x, y);
-        this.weight = weight;
-        this.physics = new physicsObject(x, y, weight);
+        this.mass = mass;
+        this.physics = new physicsObject(x, y, mass);
         this.moveable = true;
 
         this.color = '#f1ff74ff'
@@ -105,20 +105,26 @@ class MoveableRect extends Rect{
     }
 }
 class Muscle{
-    
+    constructor(index1, index2){
+        this.index1 = index1; this.index2 = index2;
+    }
+    getLength(x1, x2, y1, y2){
+        return Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))
+    }
+
+}
+class SmoothMuscle extends Muscle{
     constructor(index1, index2, obj1X, obj1Y, obj2X, obj2Y){
 
-        this.index1 = index1;
-        this.index2 = index2;
-
+        super(index1, index2)
 
         this.muscle = new fiber();
         
         //sets l_m
         this.updateLength(obj1X, obj2X, obj1Y, obj2Y);
         console.log(this.muscle.b, this.muscle.length)
-        //sets l_0
-        this.muscle.b = this.muscle.length;
+        //sets l_0 
+        this.muscle.setRestingLength(this.muscle.length)
         
         
     }
@@ -148,6 +154,49 @@ class Muscle{
     }
     updateLength(x1, x2, y1, y2){
         console.log(`Updating length:\n x1:${x1}, y1:${y1}, x2:${x2}, y2:${y2}\nLength: ${Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))}`)
-        this.muscle.length = Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))
+        this.muscle.length = this.getLength(x1, x2, y1, y2)
+    }
+}
+class SkeletalMuscle extends Muscle{
+    constructor(index1, index2, x1, y1, x2, y2){
+        super(index1, index2);
+        let params = {kappa: 6, mBar: 0.33, aBar:-24.1}
+        this.muscle = new SkeletalFiber(this.getLength(x1, x2, y1, y2), params)
+        this.active = true;
+    }
+    update(obj1, obj2, dt){
+        this.muscle.updateActivation(dt, this.active);
+        this.muscle.update(dt);
+
+        let force = this.muscle.force;
+
+        console.log("Force:", force)
+
+        let length = Math.max(this.muscle.x, 1e-8);
+
+        let dx = obj2.x - obj1.x;
+        let dy = obj2.y - obj1.y;
+
+        let ux = dx/length;
+        let uy = dy/length;
+        
+        let forceX = ux * force;
+        let forceY = uy * force;
+        console.log(`Active: ${this.muscle.activation} \nLength: ${this.muscle.x}\nForce:\n x: ${forceX}, y: ${forceY}\n ux: ${ux}, uy: ${uy}\n dx: ${dx}, dy: ${dy}`)
+
+        //return to the sim to apply force to the objects
+        return [forceX, forceY]
+
+    }
+
+    updateLength(){
+        this.length = this.muscle.x;
+    }
+    setActive(){
+        this.active = true;
+    }
+
+    setInactive(){
+        this.active = false;
     }
 }

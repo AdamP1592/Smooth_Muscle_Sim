@@ -1,4 +1,5 @@
-
+const maxX = 100;
+const maxY = 100
 var focused_button = null;
 var canvas = null;
 var ctx = null;
@@ -39,10 +40,10 @@ function onclick_event(event){
     let x = event.clientX - rect.left;
     let y = event.clientY - rect.top;
 
-    //scaled to between 0 to 250 
-    let xScaled = 250 * (x / rect.width);
-    let yScaled = 250 * (y / rect.height);
-    //console.log(`RawXY: ${x}, ${y} \nScaledXY(0 - 250) ${xScaled}, ${yScaled}`)
+    //scaled to between 0 to maxX/maxY 
+    let xScaled = maxX * (x / rect.width);
+    let yScaled = maxY * (y / rect.height);
+    //console.log(`RawXY: ${x}, ${y} \nScaledXY(0 - maxY) ${xScaled}, ${yScaled}`)
 
     //in bounds
     if(!( x < 0 || y < 0 || x > rect.width || y > rect.height)){
@@ -68,9 +69,9 @@ function onclick_event(event){
 }
 
 function convertRawCoordsToCanvas(x, y){
-  //converts 0 - 250 coords to canvas coords
-  let xCanvas = x * rect.width / 250
-  let yCanvas = y * rect.height / 250
+  //converts 0 - maxX/maxY coords to canvas coords
+  let xCanvas = x * rect.width / maxX
+  let yCanvas = y * rect.height / maxY
 
   return [xCanvas, yCanvas]
 }
@@ -128,8 +129,8 @@ function drawSquares(){
 }
 
 function draw(currentTime){
-  const fps = 30
-  const dt = 0.001
+  const fps = 0.5
+  const dt = 0.1
   let elapsedTime = currentTime - lastFrameTime;
   //1000 ms per second
 
@@ -150,6 +151,7 @@ function draw(currentTime){
     // update sim 
     sim.step(dt);
 
+
     lastFrameTime = currentTime - (elapsedTime % (1000/fps));
     
   }
@@ -168,6 +170,10 @@ function resizeCanvas(){
 }
 window.addEventListener("load", function() {
   sim = new PhysicsSim();
+  sim.createFixedSquare(50, 50);
+  sim.createMoveableSquare(20, 20 );
+
+  sim.createMuscle(sim.objects[0], sim.objects[1], 0, 1)
   canvas = document.getElementById("phys_sim");
   ctx = canvas.getContext("2d");
 

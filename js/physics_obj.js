@@ -4,6 +4,8 @@ class physicsObject{
         this.y = y;
         this.mass = mass;
 
+        this.friction_constant = 0.1;
+
         //total current velocity
         this.velocityX = 0;
         this.velocityY = 0;
@@ -52,9 +54,12 @@ class physicsObject{
     }
     move(t){
         let newState = this.predictStep(t);
+        let vx = newState["newVelX"];
+        let vy = newState["newVelY"];
 
-        this.velocityX = newState["newVelX"];
-        this.velocityY = newState["newVelY"];
+        //flat
+        this.velocityX = vx - (this.friction_constant * vx);
+        this.velocityY = vy - (this.friction_constant * vy);
 
         this.x = newState["newX"];
         this.y = newState["newY"];
