@@ -180,15 +180,27 @@ class SmoothMuscle extends Muscle{
 class SkeletalMuscle extends Muscle{
     constructor(index1, index2, x1, y1, x2, y2){
         super(index1, index2);
-        let params = {kappa: 6, mBar: 0.33, aBar:-24.1}
+        let params = {
+            kappa: 6,
+            sigma_t: 1.0,
+            delta_sigma: 1e-3,
+            delta_x: 2e-5,
+            delta_a: 8e-3,
+            //for future use for dynamically setting custom functions to define mbar and abar given force
+            aBar_base: 0.95465,
+            aBar_shift: 27.8085,
+            aBar_scaleFactor: 27.41952,
+            mBar_base:0.633738,
+            mBar_shift:0.599493,
+            mBar_scaleFactor:8.01869
+            
+        }
         this.muscle = new SkeletalFiber(this.getLength(x1, x2, y1, y2), params)
         this.active = true;
     }
     update(obj1, obj2, dt){
         this.muscle.updateActivation(dt, this.active);
-        this.muscle.step(dt);
-
-        let force = this.muscle.force;
+        let force = this.muscle.step(dt);
 
         console.log("Force:", force)
 

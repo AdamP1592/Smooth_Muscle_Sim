@@ -109,20 +109,22 @@ class SkeletalFiber{
         this.x = initialLength;
         this.x_r = initialLength;
 
-        this.x_ref = params.x_ref
+        //to maintain the ratio from the paper of max length to length: * (12.8 / 11.5)
+        this.x_ref = initialLength;
+
         this.kappa = params.kappa;
 
         this.sigma_t = params.sigma_t
 
         this.delta_x = params.delta_x;
         this.delta_a = params.delta_a;
+        this.delta_sigma = params.delta_sigma
 
         
         this.xrMin = 0.6 * initialLength;
-        this.xrMax = initialLength;
 
-        this.aBar = params.aBar;
-        this.mBar = params.mBar;
+        this.setABar(0);
+        this.setMBar(0);
 
         //helper variables
         this.activation = this.aBar;
@@ -194,6 +196,7 @@ class SkeletalFiber{
         return this.x_r / this.x_ref;
     }
     mSigma(sigma_minus_sigma_t){
+        console.log("Delta Sigma:", this.delta_sigma)
         const m_sigma = 0.5 * this.erfc(sigma_minus_sigma_t / (Math.sqrt(2) * this.delta_sigma));
         return m_sigma
     }
@@ -201,7 +204,7 @@ class SkeletalFiber{
         let xr = this.x_r;
         
         //shortening
-        let term1_xr = 0.5 * this.erfc((xr - (this.xrMax - this.delta_x)) / (Math.sqrt(2) * this.delta_x / 2));
+        let term1_xr = 0.5 * this.erfc((xr - (this.x_ref - this.delta_x)) / (Math.sqrt(2) * this.delta_x / 2));
         let term1_a = 0.5 * this.erfc(-driving_force / (Math.sqrt(2) * this.delta_a));
         let term1 = term1_xr * term1_a;
         
@@ -241,6 +244,8 @@ class SkeletalFiber{
         let sigma_minus_sigma_t = psiPrime - this.sigma_t
         let m_sig = this.mSigma(sigma_minus_sigma_t)
         let ma = this.m_a(driving_force)
+
+        console.log(` Sigma_minus_sigma_t: ${sigma_minus_sigma_t}\n m_sigma: ${m_sig}\n ma: ${ma}`)
         return this.mBar * m_sig * ma;
     }
     updateActivation(t){
@@ -262,11 +267,13 @@ class SkeletalFiber{
         //update xr
         let dxr_dt = this.x_r * m * drivingForce;
         this.x_r += dxr_dt * dt;
-
+        console.log(`Step:\n λ_e: ${lambdaE}\n λ_r: ${lambdaR}\n ψ_r: ${psiR}\n ψ': ${psiPrime}\n e: ${_e}\n drivingForce: ${drivingForce}\n m: ${m}\n dxrdt: ${dxr_dt}\n xr: ${this.x_r}`) 
         //clamped between max and min length
-        this.x_r = Math.max(this.xrMin, Math.min(this.x_r, this.xrMax));
+        this.x_r = Math.max(this.xrMin, Math.min(this.x_r, this.x_ref));
         
         let force = this.PsiPrime(this.LambdaE)
+
+        console.log("Final Force: ", force)
         return force;
     }
     updateLength(newLength){
