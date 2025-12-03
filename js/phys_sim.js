@@ -6,6 +6,7 @@ class PhysicsSim{
         //elements in this case are things that cause movement
         this.forceAddingElements = [] 
         this.objects = []
+        this.t = 0
     }
     createFixedSquare(x, y){
         let width = 10;
@@ -17,9 +18,9 @@ class PhysicsSim{
     createMoveableSquare(x, y){
         let width = 10;
         let height = 10;
-        
-        let weight = 25;
-        let rect = new MoveableRect(width, height, x, y, weight)
+        //half a gram
+        let mass = 0.5;
+        let rect = new MoveableRect(width, height, x, y, mass)
         this.fixedObjects.push(rect)
         this.objects.push(rect)
     }
@@ -57,16 +58,17 @@ class PhysicsSim{
 
 
     }
-    step(t){
-
-        console.log("Step: ", t);
+    step(dt){
+        this.t += dt
+        //console.log("Step: ", this.t);
         // updates objects to new positions
         for(let i = 0; i < this.objects.length; i++){
-            this.objects[i].update(t);
+            this.objects[i].update(dt);
         }
         for(let i = 0; i < this.forceAddingElements.length; i++){
-            console.log("ElementsLoop")
+            // console("ElementsLoop")
             let element = this.forceAddingElements[i];
+            // console(element)
 
             let obj1 = this.objects[element.index1];
             let obj2 = this.objects[element.index2];
@@ -74,8 +76,8 @@ class PhysicsSim{
             element.updateLength(obj1.x, obj2.x, obj1.y, obj2.y);
 
             // recalculates force given the new length
-            let [forceX, forceY] = element.update(obj1, obj2, t);
-            console.log(`muslce: ${element.index1}, ${element.index2}:\n ForceX:${forceX}\n ForceY:${forceY}`)
+            let [forceX, forceY] = element.update(obj1, obj2, dt, this.t);
+            // console(`muslce: ${element.index1}, ${element.index2}:\n ForceX:${forceX}\n ForceY:${forceY}`)
             // applies force to connected objects for the next step
             obj2.addForce(-forceX, -forceY);
             obj1.addForce(forceX, forceY);
@@ -142,7 +144,7 @@ class SmoothMuscle extends Muscle{
         
         //sets l_m
         this.updateLength(obj1X, obj2X, obj1Y, obj2Y);
-        console.log(this.muscle.b, this.muscle.length)
+        // console(this.muscle.b, this.muscle.length)
         //sets l_0 
         this.muscle.setRestingLength(this.muscle.length)
         
@@ -150,6 +152,7 @@ class SmoothMuscle extends Muscle{
     }
     //returns the force vector for obj2
     update(obj1, obj2, t){
+        
         //contraction force
         let force = this.muscle.contract(t);
         if(force > 10000){
@@ -158,7 +161,7 @@ class SmoothMuscle extends Muscle{
         
         //break down force into component forces
 
-        console.log("Force:", force)
+        // console("Force:", force)
         let dx = obj2.x - obj1.x;
         let dy = obj2.y - obj1.y;
 
@@ -173,7 +176,7 @@ class SmoothMuscle extends Muscle{
         
     }
     updateLength(x1, x2, y1, y2){
-        console.log(`Updating length:\n x1:${x1}, y1:${y1}, x2:${x2}, y2:${y2}\nLength: ${Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))}`)
+        // console(`Updating length:\n x1:${x1}, y1:${y1}, x2:${x2}, y2:${y2}\nLength: ${Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))}`)
         this.muscle.length = this.getLength(x1, x2, y1, y2)
     }
 }
@@ -196,13 +199,17 @@ class SkeletalMuscle extends Muscle{
             
         }
         this.muscle = new SkeletalFiber(this.getLength(x1, x2, y1, y2), params)
+
+        this.muscle.setStimulation(0, "constant");
+        
         this.active = true;
     }
-    update(obj1, obj2, dt){
-        this.muscle.updateActivation(dt, this.active);
+    update(obj1, obj2, dt, t){
+        // console("T in phys sim:" + t)
+        this.muscle.updateActivation(t);
         let force = this.muscle.step(dt);
 
-        console.log("Force:", force)
+        // console("Force:", force)
 
         let length = Math.max(this.muscle.x, 1e-8);
 
@@ -214,7 +221,7 @@ class SkeletalMuscle extends Muscle{
         
         let forceX = ux * force;
         let forceY = uy * force;
-        console.log(`Active: ${this.muscle.activation} \nLength: ${this.muscle.x}\nForce:\n x: ${forceX}, y: ${forceY}\n ux: ${ux}, uy: ${uy}\n dx: ${dx}, dy: ${dy}`)
+        // console(`Active: ${this.muscle.activation} \nLength: ${this.muscle.x}\nForce:\n x: ${forceX}, y: ${forceY}\n ux: ${ux}, uy: ${uy}\n dx: ${dx}, dy: ${dy}`)
 
         //return to the sim to apply force to the objects
         return [forceX, forceY]
@@ -230,5 +237,20 @@ class SkeletalMuscle extends Muscle{
 
     setInactive(){
         this.active = false;
+    }
+}
+class SoftBody{
+    constructor(){
+
+    }
+    update(dt){
+
+    }
+}
+class SoftBody1d{
+    constructor(length, elasticity, mass){
+        this.mass = mass;
+        this.length = length;
+        this.elasticity = elasticity;
     }
 }

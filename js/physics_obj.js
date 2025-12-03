@@ -4,7 +4,8 @@ class physicsObject{
         this.y = y;
         this.mass = mass;
 
-        this.friction_constant = 0.1;
+        this.kineticFrictionConstant = 0.4;
+        this.staticFrictionConstant = 0.5;
 
         //total current velocity
         this.velocityX = 0;
@@ -55,21 +56,57 @@ class physicsObject{
     move(dt){
         let oldVX = this.velocityX;
         let oldVY = this.velocityY;
+        
+        // coulomb friction
+        let frictionX = 0;
+        let frictionY = 0;
 
-        let newState = this.predictStep(dt);
-        let vx = newState["newVelX"];
-        let vy = newState["newVelY"];
+        const staticFrictionMagnitude = this.mass * 9.81 * this.staticFrictionConstant;
+        
+        let appliedForce = Math.sqrt(Math.pow(this.force_x, 2) + Math.pow(this.force_y, 2));
+        
+        if(Math.abs(this.velocityX) < 1e-6 && Math.abs(this.velocityY) < 1e-6 && appliedForce <= staticFrictionMagnitude){
+            this.velocityX = 0;
+            this.velocityY = 0;
+            frictionX = -this.force_x;
+            frictionY = -this.force_y;
+        }else{
+            const kineticFrictionMagnitude = this.mass * 9.81 * this.kineticFrictionConstant;
+            const speed = Math.sqrt(Math.pow(this.velocityX, 2) + Math.pow(this.velocityY, 2));
+            if(speed > 1e-6){
+                frictionX = -(this.velocityX / speed) * kineticFrictionMagnitude;
+                frictionY = -(this.velocityY / speed) * kineticFrictionMagnitude;
+            }
+        }
+
+        let totalForceX = this.force_x + frictionX;
+        let totalForceY = this.force_y + frictionY;
+
+        let accelerationX = totalForceX / this.mass;
+        let accelerationY = totalForceY / this.mass;
+        
+        this.velocityX += accelerationX * dt;
+        this.velocityY += accelerationY * dt;
+
+        if (oldVX * this.velocityX < 0) {
+            this.velocityX = 0;
+        }
+        if (oldVY * this.velocityY < 0) {
+            this.velocityY = 0;
+        }
         
 
-        //flat
-        this.velocityX = vx - (this.friction_constant * vx);
-        this.velocityY = vy - (this.friction_constant * vy);
+        this.x += (this.velocityX * dt);
+        this.y += (this.velocityY * dt);
 
-        this.x = newState["newX"];
-        this.y = newState["newY"];
+
+        console.log(`vx: ${this.velocityX}, vy: ${this.velocityY}, forceX: ${this.force_x}, forceY: ${this.force_y}, frictionX: ${frictionX}, frictionY: ${frictionY}`)
 
         let deltaVX = this.velocityX - oldVX;
         let deltaVY = this.velocityY - oldVY;
+
+        this.force_x = 0;
+        this.force_y = 0;
 
         return [deltaVX, deltaVY];
     }

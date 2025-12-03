@@ -1,3 +1,4 @@
+//const { simpleLayout } = require("echarts/types/src/chart/graph/simpleLayoutHelper.js");
 
 const fiber_const_map = {
     a: 65.06,
@@ -61,12 +62,13 @@ class fiber{
         
         let t = this.stimulusDuration;
         // Debug Info
-        console.log(`Constants:\n a:${this.a}, b:${this.b}, c:${this.c}, d:${this.d}\n tau_c:${this.tau_c}, tau_r:${this.tau_r}\n t_p:${this.t_p} t_b:${this.t_b}\n alpha:${this.alpha}`)
+        //console.log(`Constants:\n a:${this.a}, b:${this.b}, c:${this.c}, d:${this.d}\n tau_c:${this.tau_c}, tau_r:${this.tau_r}\n t_p:${this.t_p} t_b:${this.t_b}\n alpha:${this.alpha}`)
         
         let trClamped = Math.max(t - this.t_b, 0) / this.tau_r;
         
         // Debug Info
-        console.log(`clamped TR: ${trClamped}, t: ${t}, t_b: ${this.t_b}, tau_r: ${this.tau_r}, lm-b: ${l_m-this.b}`)
+        //
+        //console.log(`clamped TR: ${trClamped}, t: ${t}, t_b: ${this.t_b}, tau_r: ${this.tau_r}, lm-b: ${l_m-this.b}`)
 
         let f_t_Numerator = (1 - Math.E ** ( - ((t / this.tau_c) ** this.alpha) )) * Math.E ** (- (trClamped ** this.alpha));
         let f_t_Denominator = (1 - Math.E ** ( - ((this.t_p / this.tau_c) ** this.alpha) )) * Math.E ** ( - (((this.t_p - this.t_b) / this.tau_r) ** this.alpha) );
@@ -98,7 +100,7 @@ class fiber{
         let contractingForce = (f_passive + (f_active * f_t))
         let force = (contractingForce) + f_compression;
         // Debug Info
-        console.log(`force: ${force}, f_passive ${f_passive}, f_active ${f_active}, f_compression: ${f_compression}\n f_t ${f_t}, f_t_numerator ${f_t_Numerator}, f_t_denom${f_t_Denominator}`)
+        //console.log(`force: ${force}, f_passive ${f_passive}, f_active ${f_active}, f_compression: ${f_compression}\n f_t ${f_t}, f_t_numerator ${f_t_Numerator}, f_t_denom${f_t_Denominator}`)
         return force;
     }
 
@@ -130,28 +132,18 @@ class SkeletalFiber{
         this.activation = this.aBar;
 
         this.activationObj = new Activation(0, 0);
-        this.activationFunction = (t) => this.activationObj.activateNone(t)
 
     }
     /**
     * @param {string} stimulationType
     */
-    setStimulation(t, stimulationType, freq = 50){
+    setStimulation(t, stimulationType, freq = 150){
         //gets the requested stim type
         stimulationType = stimulationType.toLowerCase()
         
         //sets new parameters
-        this.activation.startNew(t, freq);
-
-        //sets the new stimulation function
-        let stimulationTypes = {
-            "none":(t) => this.activationObj.activateNone(t),
-            "square":(t) => this.activationObj.activateSquare(t),
-            "sin":(t) => this.activationObj.activateSin(t),
-            "constant":(t) => this.activationObj.activateConstant(t)
-        }
-
-        this.activationFunction = stimulationTypes[stimulationType];
+        this.activationObj.startNew(t, freq, stimulationType);
+        
     }
     /**
      * Custom fit exponential equation for adaptive mbar: mbar = 8.01869 * (0.633738 ^ x) + 0.599493
@@ -196,7 +188,7 @@ class SkeletalFiber{
         return this.x_r / this.x_ref;
     }
     mSigma(sigma_minus_sigma_t){
-        console.log("Delta Sigma:", this.delta_sigma)
+        //console.log("Delta Sigma:", this.delta_sigma)
         const m_sigma = 0.5 * this.erfc(sigma_minus_sigma_t / (Math.sqrt(2) * this.delta_sigma));
         return m_sigma
     }
@@ -245,11 +237,13 @@ class SkeletalFiber{
         let m_sig = this.mSigma(sigma_minus_sigma_t)
         let ma = this.m_a(driving_force)
 
-        console.log(` Sigma_minus_sigma_t: ${sigma_minus_sigma_t}\n m_sigma: ${m_sig}\n ma: ${ma}`)
+       //console.log(` Sigma_minus_sigma_t: ${sigma_minus_sigma_t}\n m_sigma: ${m_sig}\n ma: ${ma}`)
         return this.mBar * m_sig * ma;
     }
     updateActivation(t){
-        this.activation = this.aBar * this.activationFunction(t);
+        this.activation = this.aBar * this.activationObj.activate(t);
+        //console.log(`Activation(${t}s): ${this.activation}`);
+        //console.log(this.activationObj)
     }
     step(dt){
         let lambdaE = this.LambdaE;
@@ -264,16 +258,18 @@ class SkeletalFiber{
 
         let m = this.mobility(psiPrime, drivingForce);
 
+
         //update xr
         let dxr_dt = this.x_r * m * drivingForce;
         this.x_r += dxr_dt * dt;
-        console.log(`Step:\n λ_e: ${lambdaE}\n λ_r: ${lambdaR}\n ψ_r: ${psiR}\n ψ': ${psiPrime}\n e: ${_e}\n drivingForce: ${drivingForce}\n m: ${m}\n dxrdt: ${dxr_dt}\n xr: ${this.x_r}`) 
+        //console.log(`Step:\n λ_e: ${lambdaE}\n λ_r: ${lambdaR}\n ψ_r: ${psiR}\n ψ': ${psiPrime}\n e: ${_e}\n drivingForce: ${drivingForce}\n m: ${m}\n dxrdt: ${dxr_dt}\n xr: ${this.x_r}`) 
         //clamped between max and min length
         this.x_r = Math.max(this.xrMin, Math.min(this.x_r, this.x_ref));
         
         let force = this.PsiPrime(this.LambdaE)
 
-        console.log("Final Force: ", force)
+        //console.log("Final Force: ", force)
+        
         return force;
     }
     updateLength(newLength){
