@@ -130,14 +130,15 @@ function drawSquares(){
 
 function draw(currentTime){
   const fps = 20
-  const dt = 0.01
+  const dt = 0.0001
   let elapsedTime = currentTime - lastFrameTime;
   //1000 ms per second
   
   if (elapsedTime > 1000/fps){
-    // take the elapsedTime 
-    //number of seconds passed / dt = number of steps
+    // in case fps is low, the sim adjusts each subsequent number
+    // of steps to fit real-time simulation
     let stepCount = Math.round(elapsedTime / ( 1000 * dt ));
+    //let stepCount = 1;
     console.log(elapsedTime, stepCount)
     //clear canvas
     ctx.beginPath();
@@ -157,7 +158,6 @@ function draw(currentTime){
       sim.step(dt);
     }
     
-
     lastFrameTime = currentTime - (elapsedTime % (1000/fps));
     
   }
@@ -178,19 +178,20 @@ window.addEventListener("load", function() {
   sim = new PhysicsSim();
   sim.createFixedSquare(60, 60);
   sim.createMoveableSquare(40, 40);
-  //sim.createFixedSquare(20, 20)
-  //sim.createFixedSquare(20, 23)
+  sim.createFixedSquare(20, 20)
+  sim.createFixedSquare(20, 23)
   //sim.createFixedSquare(23, 20)
 
   sim.createMuscle(sim.objects[0], sim.objects[1], 0, 1)
-  //sim.createMuscle(sim.objects[1], sim.objects[2], 1, 2)
+  sim.createMuscle(sim.objects[1], sim.objects[2], 1, 2)
   //sim.createMuscle(sim.objects[1], sim.objects[3], 1, 3)
   //sim.createMuscle(sim.objects[1], sim.objects[4], 1, 4)
 
-  //sim.forceAddingElements[1].muscle.setStimulation(1, "sin", 150)
-  //sim.forceAddingElements[2].muscle.setStimulation(0.25, "sin", 150)
-  //sim.forceAddingElements[3].muscle.setStimulation(0.5, "sin", 150)
   sim.forceAddingElements[0].muscle.setStimulation(0, "const")
+  sim.forceAddingElements[1].muscle.setStimulation(0, "sin", 1)
+  //sim.forceAddingElements[2].muscle.setStimulation(0.25, "sin", 10)
+  //sim.forceAddingElements[3].muscle.setStimulation(0.5, "sin", 150)
+  
 
   canvas = document.getElementById("phys_sim");
   ctx = canvas.getContext("2d");

@@ -169,6 +169,7 @@ class SkeletalFiber{
     setABar(force){
         let ab = 27.41952 * Math.pow(0.95465, force) - 27.78085;
         this.aBar = Math.max(Math.min(-2.3, ab), -17.53);
+        //this.aBar = -27.53
         return true;
     }
     /**
@@ -188,8 +189,10 @@ class SkeletalFiber{
         return this.x_r / this.x_ref;
     }
     mSigma(sigma_minus_sigma_t){
-        //console.log("Delta Sigma:", this.delta_sigma)
+        //console.log(this.delta_sigma)
         const m_sigma = 0.5 * this.erfc(sigma_minus_sigma_t / (Math.sqrt(2) * this.delta_sigma));
+        //console.log("delta sigma: ", this.delta_sigma);
+        //console.log("sigma_minus_sigma_t: ", sigma_minus_sigma_t);
         return m_sigma
     }
     m_a(driving_force){
@@ -233,11 +236,12 @@ class SkeletalFiber{
     }
 
     mobility(psiPrime, driving_force){
+
         let sigma_minus_sigma_t = psiPrime - this.sigma_t
         let m_sig = this.mSigma(sigma_minus_sigma_t)
         let ma = this.m_a(driving_force)
 
-       //console.log(` Sigma_minus_sigma_t: ${sigma_minus_sigma_t}\n m_sigma: ${m_sig}\n ma: ${ma}`)
+        //console.log(` Sigma_minus_sigma_t: ${sigma_minus_sigma_t}\n m_sigma: ${m_sig}\n ma: ${ma}, psiPrime: ${psiPrime}, sigma_t: ${this.sigma_t}`)
         return this.mBar * m_sig * ma;
     }
     updateActivation(t){
@@ -249,7 +253,6 @@ class SkeletalFiber{
         let lambdaE = this.LambdaE;
         let lambdaR = this.LambdaR;
 
-
         let psiR = this.PsiR(lambdaE);
         let psiPrime = this.PsiPrime(lambdaE);
         let _e = this.e(lambdaE, psiR, psiPrime);
@@ -258,11 +261,24 @@ class SkeletalFiber{
 
         let m = this.mobility(psiPrime, drivingForce);
 
-
+        //debug
+        let sigma_minus_sigma_t = psiPrime - this.sigma_t
+        let erfc_arg = (this.delta_sigma - sigma_minus_sigma_t) / (Math.sqrt(2) * this.delta_sigma);
+        let m_sigma = 0.5 * this.erfc(erfc_arg);
         //update xr
         let dxr_dt = this.x_r * m * drivingForce;
         this.x_r += dxr_dt * dt;
-        //console.log(`Step:\n λ_e: ${lambdaE}\n λ_r: ${lambdaR}\n ψ_r: ${psiR}\n ψ': ${psiPrime}\n e: ${_e}\n drivingForce: ${drivingForce}\n m: ${m}\n dxrdt: ${dxr_dt}\n xr: ${this.x_r}`) 
+        /*console.log(`
+            dt = ${dt}
+            sigma = ${psiPrime.toFixed(6)}
+            sigma_t = ${this.sigma_t}
+            sigma - sigma_t = ${sigma_minus_sigma_t}
+            erfc_arg = ${erfc_arg.toFixed(3)}
+            m_sigma = ${m_sigma.toFixed(6)}
+            x_r = ${this.x_r.toFixed(6)}
+        `);*/
+    
+        //console.log(`Step:\n lambda_e: ${lambdaE}\n lambda_r: ${lambdaR}\n ψ_r: ${psiR}\n ψ': ${psiPrime}\n e: ${_e}\n drivingForce: ${drivingForce}\n m: ${m}\n dxrdt: ${dxr_dt}\n xr: ${this.x_r}\n x:${this.x}\n e:${_e}\n activation: ${this.activation}`) 
         //clamped between max and min length
         this.x_r = Math.max(this.xrMin, Math.min(this.x_r, this.x_ref));
         

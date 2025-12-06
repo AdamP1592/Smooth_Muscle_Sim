@@ -18,8 +18,8 @@ class PhysicsSim{
     createMoveableSquare(x, y){
         let width = 10;
         let height = 10;
-        //half a gram
-        let mass = 0.5;
+        //0.01 g
+        let mass = 0.1;
         let rect = new MoveableRect(width, height, x, y, mass)
         this.fixedObjects.push(rect)
         this.objects.push(rect)
@@ -155,10 +155,6 @@ class SmoothMuscle extends Muscle{
         
         //contraction force
         let force = this.muscle.contract(t);
-        if(force > 10000){
-            //sleep(5000)
-        }
-        
         //break down force into component forces
 
         // console("Force:", force)
@@ -200,7 +196,7 @@ class SkeletalMuscle extends Muscle{
         }
         this.muscle = new SkeletalFiber(this.getLength(x1, x2, y1, y2), params)
 
-        this.muscle.setStimulation(0, "constant");
+        this.muscle.setStimulation(0, "none");
         
         this.active = true;
     }
@@ -208,8 +204,8 @@ class SkeletalMuscle extends Muscle{
         // console("T in phys sim:" + t)
         this.muscle.updateActivation(t);
         let force = this.muscle.step(dt);
-
-        // console("Force:", force)
+        
+        //console.log("Force:", force)
 
         let length = Math.max(this.muscle.x, 1e-8);
 

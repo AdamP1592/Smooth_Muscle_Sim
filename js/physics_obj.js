@@ -65,7 +65,9 @@ class physicsObject{
         
         let appliedForce = Math.sqrt(Math.pow(this.force_x, 2) + Math.pow(this.force_y, 2));
         
-        if(Math.abs(this.velocityX) < 1e-6 && Math.abs(this.velocityY) < 1e-6 && appliedForce <= staticFrictionMagnitude){
+        //scale eps with dt
+        let eps = 1e-6 * dt;
+        if(Math.abs(this.velocityX) < eps && Math.abs(this.velocityY) < eps && appliedForce <= staticFrictionMagnitude){
             this.velocityX = 0;
             this.velocityY = 0;
             frictionX = -this.force_x;
@@ -73,7 +75,7 @@ class physicsObject{
         }else{
             const kineticFrictionMagnitude = this.mass * 9.81 * this.kineticFrictionConstant;
             const speed = Math.sqrt(Math.pow(this.velocityX, 2) + Math.pow(this.velocityY, 2));
-            if(speed > 1e-6){
+            if(speed > eps){
                 frictionX = -(this.velocityX / speed) * kineticFrictionMagnitude;
                 frictionY = -(this.velocityY / speed) * kineticFrictionMagnitude;
             }
@@ -99,8 +101,7 @@ class physicsObject{
         this.x += (this.velocityX * dt);
         this.y += (this.velocityY * dt);
 
-
-        console.log(`vx: ${this.velocityX}, vy: ${this.velocityY}, forceX: ${this.force_x}, forceY: ${this.force_y}, frictionX: ${frictionX}, frictionY: ${frictionY}`)
+        //console.log(`vx: ${this.velocityX}, vy: ${this.velocityY}, forceX: ${this.force_x}, forceY: ${this.force_y}, frictionX: ${frictionX}, frictionY: ${frictionY}, eps: ${eps}`)
 
         let deltaVX = this.velocityX - oldVX;
         let deltaVY = this.velocityY - oldVY;
