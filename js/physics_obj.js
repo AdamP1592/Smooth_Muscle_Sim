@@ -109,7 +109,10 @@ class physicsObject{
         this.force_x = 0;
         this.force_y = 0;
 
-        return [deltaVX, deltaVY];
+        return [totalForceX, totalForceY];
     }
-    
+    resetForces(){
+        this.force_x = 0;
+        this.force_y = 0;
+    }
 }

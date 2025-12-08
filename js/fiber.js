@@ -109,10 +109,10 @@ class SkeletalFiber{
     constructor(initialLength, params){
 
         this.x = initialLength;
-        this.x_r = initialLength;
+        this.x_r = initialLength * 0.8;
 
         //to maintain the ratio from the paper of max length to length: * (12.8 / 11.5)
-        this.x_ref = initialLength;
+        this.x_ref = initialLength + 1e-6;
 
         this.kappa = params.kappa;
 
@@ -130,6 +130,7 @@ class SkeletalFiber{
 
         //helper variables
         this.activation = this.aBar;
+        this.previousForce = 0;
 
         this.activationObj = new Activation(0, 0);
 
@@ -176,8 +177,8 @@ class SkeletalFiber{
     * @param {float} x 
     */
     erfc(x) {
-        const erf = math.erf(x)
-        return 1 - erf;
+        var erf = math.erf(x)
+        return 1.0 - erf;
     }
     get LambdaE(){
         return this.x / this.x_r;
@@ -190,8 +191,15 @@ class SkeletalFiber{
     }
     mSigma(sigma_minus_sigma_t){
         //console.log(this.delta_sigma)
-        const m_sigma = 0.5 * this.erfc(sigma_minus_sigma_t / (Math.sqrt(2) * this.delta_sigma));
-        //console.log("delta sigma: ", this.delta_sigma);
+        let arg = (this.delta_sigma - sigma_minus_sigma_t) / (Math.sqrt(2) * this.delta_sigma)
+        //console.log('mSigma called; local arg =', arg);
+        let erfcResult = this.erfc(arg)
+        var m_sigma = 0.5 * erfcResult
+        /*
+        console.log("erfc result = (delta_sigma - sigma_minus_sigma_t )/ sqrt(2) * delta_sigma");
+        console.log(`${erfcResult} = efrc(${this.delta_sigma - sigma_minus_sigma_t} / (${Math.sqrt(2) * this.delta_sigma}))`)
+        console.log(`${erfcResult} = erfc(${arg})`)
+        */
         //console.log("sigma_minus_sigma_t: ", sigma_minus_sigma_t);
         return m_sigma
     }
@@ -221,12 +229,9 @@ class SkeletalFiber{
     }
     PsiPrime(lambdaE){
         let le = lambdaE;
-        if(le == 0){
-            return 0;
-        }
-        let first =  Math.pow(le, 3) * (Math.pow(le, 4) - 1);
-        let second = Math.log(Math.pow(le, 4))/le;
-        return (this.kappa/2) * (first + second)
+        let fraction = Math.log(Math.pow(le, 4)) + Math.pow(le, 8) - Math.pow(le, 4)
+        fraction /= le
+        return this.kappa * fraction
     }
     e(lambdaE, psiR, psiPrime){
         return psiR - (lambdaE * psiPrime);
@@ -236,13 +241,27 @@ class SkeletalFiber{
     }
 
     mobility(psiPrime, driving_force){
-
         let sigma_minus_sigma_t = psiPrime - this.sigma_t
         let m_sig = this.mSigma(sigma_minus_sigma_t)
         let ma = this.m_a(driving_force)
-
+        let mobility = this.mBar * m_sig * ma;
+        /*
+        console.log(`
+            Mobility: ${mobility}
+            sigma(aka psiPrime): ${psiPrime}
+            simga_t: ${this.sigma_t}
+            delta_sigma:${this.delta_sigma}
+            m_sigma: ${m_sig}
+            drivingForce: ${driving_force}
+            ma: ${ma}
+            mbar: ${this.mBar}
+            delta_sigma: ${this.delta_sigma}
+            activation: ${this.activation}
+            `)
+        */
+        //console.log(psiPrime, this.mBar, mobility, ma, this.activation)
         //console.log(` Sigma_minus_sigma_t: ${sigma_minus_sigma_t}\n m_sigma: ${m_sig}\n ma: ${ma}, psiPrime: ${psiPrime}, sigma_t: ${this.sigma_t}`)
-        return this.mBar * m_sig * ma;
+        return mobility
     }
     updateActivation(t){
         this.activation = this.aBar * this.activationObj.activate(t);
@@ -255,18 +274,24 @@ class SkeletalFiber{
 
         let psiR = this.PsiR(lambdaE);
         let psiPrime = this.PsiPrime(lambdaE);
+
+        this.setMBar(this.previousForce);
+        this.setABar(this.previousForce);
         let _e = this.e(lambdaE, psiR, psiPrime);
         
         let drivingForce = this.activation - lambdaR * _e;
 
         let m = this.mobility(psiPrime, drivingForce);
 
+        
+
         //debug
-        let sigma_minus_sigma_t = psiPrime - this.sigma_t
+        /*let sigma_minus_sigma_t = psiPrime - this.sigma_t
         let erfc_arg = (this.delta_sigma - sigma_minus_sigma_t) / (Math.sqrt(2) * this.delta_sigma);
-        let m_sigma = 0.5 * this.erfc(erfc_arg);
+        let m_sigma = 0.5 * this.erfc(erfc_arg);*/
         //update xr
         let dxr_dt = this.x_r * m * drivingForce;
+        //console.log(`resting length: ${this.x_r}, length ${this.x}`)
         this.x_r += dxr_dt * dt;
         /*console.log(`
             dt = ${dt}
@@ -279,11 +304,11 @@ class SkeletalFiber{
         `);*/
     
         //console.log(`Step:\n lambda_e: ${lambdaE}\n lambda_r: ${lambdaR}\n ψ_r: ${psiR}\n ψ': ${psiPrime}\n e: ${_e}\n drivingForce: ${drivingForce}\n m: ${m}\n dxrdt: ${dxr_dt}\n xr: ${this.x_r}\n x:${this.x}\n e:${_e}\n activation: ${this.activation}`) 
-        //clamped between max and min length
+        //clamped between max and min lengt
         this.x_r = Math.max(this.xrMin, Math.min(this.x_r, this.x_ref));
         
         let force = this.PsiPrime(this.LambdaE)
-
+        this.previousForce = force;
         //console.log("Final Force: ", force)
         
         return force;

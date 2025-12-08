@@ -129,8 +129,8 @@ function drawSquares(){
 }
 
 function draw(currentTime){
-  const fps = 20
-  const dt = 0.0001
+  const fps = 30
+  const dt = 0.001
   let elapsedTime = currentTime - lastFrameTime;
   //1000 ms per second
   
@@ -139,7 +139,7 @@ function draw(currentTime){
     // of steps to fit real-time simulation
     let stepCount = Math.round(elapsedTime / ( 1000 * dt ));
     //let stepCount = 1;
-    console.log(elapsedTime, stepCount)
+    //console.log(elapsedTime, stepCount)
     //clear canvas
     ctx.beginPath();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -153,8 +153,9 @@ function draw(currentTime){
     drawSquares();
 
     // update sim 
-    console.log(sim.t)
+    //console.log(sim.t)
     for(let i = 0; i < stepCount; i++){
+      //console.log(sim.t)
       sim.step(dt);
     }
     
@@ -171,27 +172,11 @@ function resizeCanvas(){
   scalingFactor = rect.width/150;
   oldWidth = canvas.width;
   oldHeight = canvas.height;
-
   
 }
 window.addEventListener("load", function() {
   sim = new PhysicsSim();
-  sim.createFixedSquare(60, 60);
-  sim.createMoveableSquare(40, 40);
-  sim.createFixedSquare(20, 20)
-  sim.createFixedSquare(20, 23)
-  //sim.createFixedSquare(23, 20)
-
-  sim.createMuscle(sim.objects[0], sim.objects[1], 0, 1)
-  sim.createMuscle(sim.objects[1], sim.objects[2], 1, 2)
-  //sim.createMuscle(sim.objects[1], sim.objects[3], 1, 3)
-  //sim.createMuscle(sim.objects[1], sim.objects[4], 1, 4)
-
-  sim.forceAddingElements[0].muscle.setStimulation(0, "const")
-  sim.forceAddingElements[1].muscle.setStimulation(0, "sin", 1)
-  //sim.forceAddingElements[2].muscle.setStimulation(0.25, "sin", 10)
-  //sim.forceAddingElements[3].muscle.setStimulation(0.5, "sin", 150)
-  
+  demo1();
 
   canvas = document.getElementById("phys_sim");
   ctx = canvas.getContext("2d");
@@ -203,6 +188,29 @@ window.addEventListener("load", function() {
   resizeCanvas();
   requestAnimationFrame(draw);
 });
+
+function demo1(){
+  sim.createFixedSquare(60, 60);
+  sim.createMoveableSquare(40, 40);
+  sim.createFixedSquare(60, 10)
+  sim.createFixedSquare(20, 40)
+  sim.createFixedSquare(60, 40)
+
+  sim.createMuscle(sim.objects[0], sim.objects[1], 0, 1)
+  //sim.createMuscle(sim.objects[1], sim.objects[2], 1, 2)
+  sim.createMuscle(sim.objects[1], sim.objects[2], 1, 2)
+  sim.createMuscle(sim.objects[1], sim.objects[3], 1, 3)
+  //sim.createMuscle(sim.objects[1], sim.objects[4], 1, 4)
+
+  console.log(sim.forceAddingElements)
+
+  sim.forceAddingElements[0].muscle.setStimulation(1, "sin", 1)
+  sim.forceAddingElements[1].muscle.setStimulation(0, "sin", 1)
+  //sim.forceAddingElements[1].muscle.setStimulation(0, "sin", 1)
+  sim.forceAddingElements[2].muscle.setStimulation(0.5, "sin", 1)
+  //sim.forceAddingElements[3].muscle.setStimulation(0.5, "sin", 150)
+  
+}
 
 function keyPressed(event){
   if(event.key === "Control"){

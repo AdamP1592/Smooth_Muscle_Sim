@@ -9,8 +9,8 @@ class PhysicsSim{
         this.t = 0
     }
     createFixedSquare(x, y){
-        let width = 10;
-        let height = 10;
+        let width = 5;
+        let height = 5;
         let rect = new Rect(width, height, x, y)
         this.fixedObjects.push(rect);
         this.objects.push(rect)
@@ -65,6 +65,7 @@ class PhysicsSim{
         for(let i = 0; i < this.objects.length; i++){
             this.objects[i].update(dt);
         }
+        //update all muscles and add forces to the objects the muscle is connected to
         for(let i = 0; i < this.forceAddingElements.length; i++){
             // console("ElementsLoop")
             let element = this.forceAddingElements[i];
@@ -112,13 +113,13 @@ class MoveableRect extends Rect{
 
         this.color = '#f1ff74ff'
 
-        this.dv = [0, 0];
+        this.componentForces = [0, 0];
     }
     addForce(forceX, forceY){
         this.physics.addForce(forceX, forceY)
     }
     update(t){
-        this.dv = this.physics.move(t);
+        this.componentForces = this.physics.move(t);
         
         this.x = this.physics.x;
         this.y = this.physics.y;
@@ -131,7 +132,7 @@ class Muscle{
         this.index1 = index1; this.index2 = index2;
     }
     getLength(x1, x2, y1, y2){
-        return Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))
+        return Math.sqrt(((x1 - x2)** 2) + ((y1 - y2) ** 2))
     }
 
 }
@@ -173,7 +174,7 @@ class SmoothMuscle extends Muscle{
     }
     updateLength(x1, x2, y1, y2){
         // console(`Updating length:\n x1:${x1}, y1:${y1}, x2:${x2}, y2:${y2}\nLength: ${Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))}`)
-        this.muscle.length = this.getLength(x1, x2, y1, y2)
+        this.muscle.x = this.getLength(x1, x2, y1, y2)
     }
 }
 class SkeletalMuscle extends Muscle{
@@ -181,8 +182,8 @@ class SkeletalMuscle extends Muscle{
         super(index1, index2);
         let params = {
             kappa: 6,
-            sigma_t: 1.0,
-            delta_sigma: 1e-3,
+            sigma_t: 0,
+            delta_sigma: 1e-6,
             delta_x: 2e-5,
             delta_a: 8e-3,
             //for future use for dynamically setting custom functions to define mbar and abar given force
@@ -201,6 +202,7 @@ class SkeletalMuscle extends Muscle{
         this.active = true;
     }
     update(obj1, obj2, dt, t){
+
         // console("T in phys sim:" + t)
         this.muscle.updateActivation(t);
         let force = this.muscle.step(dt);
@@ -223,9 +225,9 @@ class SkeletalMuscle extends Muscle{
         return [forceX, forceY]
 
     }
-
-    updateLength(){
-        this.length = this.muscle.x;
+    updateLength(x1, x2, y1, y2){
+        // console(`Updating length:\n x1:${x1}, y1:${y1}, x2:${x2}, y2:${y2}\nLength: ${Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))}`)
+        this.muscle.x = this.getLength(x1, x2, y1, y2)
     }
     setActive(){
         this.active = true;
