@@ -30,7 +30,7 @@ function onclick_event(event){
 
   let main = document.getElementById("main");
   main.classList.add('hover_with_obj');
-  
+  sim.createMuscle()
   function click_released(event){
     
     //gets coords of rect
@@ -84,7 +84,6 @@ function drawMuscles(){
 
     let [obj1X, obj1Y] = convertRawCoordsToCanvas(obj1.x, obj1.y);
     let [obj2X, obj2Y] = convertRawCoordsToCanvas(obj2.x, obj2.y);
-
 
     ctx.beginPath();
     ctx.strokeStyle = '#c21212ff';

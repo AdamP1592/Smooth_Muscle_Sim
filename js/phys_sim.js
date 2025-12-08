@@ -8,6 +8,12 @@ class PhysicsSim{
         this.objects = []
         this.t = 0
     }
+    /**
+     * Creates a fixed square at the graphing coordinates
+     * x and y
+     * @param {int} x 
+     * @param {int} y 
+     */
     createFixedSquare(x, y){
         let width = 5;
         let height = 5;
@@ -15,6 +21,12 @@ class PhysicsSim{
         this.fixedObjects.push(rect);
         this.objects.push(rect)
     }  
+    /**
+     * Creates a moveable square at the graphing coordinates
+     * x and y
+     * @param {int} x 
+     * @param {int} y 
+     */
     createMoveableSquare(x, y){
         let width = 10;
         let height = 10;
@@ -24,6 +36,17 @@ class PhysicsSim{
         this.fixedObjects.push(rect)
         this.objects.push(rect)
     }
+    /**
+     * Creates a muscle attached to obj1 and obj2
+     * index is just the index the respective object
+     * is at in the objects list and is used for
+     * updating forces by the sim
+     * @param {physicsObject} obj1 
+     * @param {physicsObject} obj2 
+     * @param {int} index1 
+     * @param {int} index2 
+     * @returns {bool} objectCreated
+     */
     createMuscle(obj1, obj2, index1, index2){
 
         //prevent duplicates
@@ -32,12 +55,13 @@ class PhysicsSim{
             //index 1 and index 2 will always be in order of least to greatest
             if(m.index1 == index1 && m.index2 == index2){
                 console.log("Duplicate muscle");
-                return;
+                return false;
             }
         }
 
         let newMuscle = new SkeletalMuscle(index1, index2, obj1.x, obj1.y, obj2.x, obj2.y);
         this.forceAddingElements.push(newMuscle)
+        return true
     }
     /**
      * takes in two physics objects
@@ -54,10 +78,11 @@ class PhysicsSim{
         let vx2 = physObj2.physicsObject.velocityX;
         let vy2 = physObj2.physicsObject.velocityY;
         let m2 = physObj2.mass;
-
-
-
     }
+    /**
+     * Takes in dt and performs a step, updating all objects and forces
+     * @param {float} dt 
+     */
     step(dt){
         this.t += dt
         //console.log("Step: ", this.t);
@@ -85,6 +110,7 @@ class PhysicsSim{
         }
     }
 }
+
 class Rect{
     constructor(width, height, x, y){
         this.width = width;
@@ -115,11 +141,22 @@ class MoveableRect extends Rect{
 
         this.componentForces = [0, 0];
     }
+    /**
+     * Takes in the component forces and adds them to the existing forces
+     * Forces are to be reset every time update(t) is called
+     * @param {float} forceX 
+     * @param {float} forceY 
+     */
     addForce(forceX, forceY){
         this.physics.addForce(forceX, forceY)
     }
-    update(t){
-        this.componentForces = this.physics.move(t);
+    /**
+     * Updates the position of the object using the net force accumulated by addForce(fx, fy)
+     * @param {float} dt 
+     * @returns [x, y]
+     */
+    update(dt){
+        this.componentForces = this.physics.move(dt);
         
         this.x = this.physics.x;
         this.y = this.physics.y;
@@ -129,14 +166,44 @@ class MoveableRect extends Rect{
 }
 class Muscle{
     constructor(index1, index2){
-        this.index1 = index1; this.index2 = index2;
+        this.index1 = index1;
+        this.index2 = index2;
+        this.muscle = null;
     }
+    /**
+     * A general helper function to compute euclidean distance given two points
+     * @param {float} x1 
+     * @param {float} x2 
+     * @param {float} y1 
+     * @param {float} y2 
+     * @returns 
+     */
     getLength(x1, x2, y1, y2){
         return Math.sqrt(((x1 - x2)** 2) + ((y1 - y2) ** 2))
     }
-
+    /**
+     * A helper function to update the length of the muscle
+     * using the two objects it's connected to
+     * @param {float} x1 
+     * @param {float} x2 
+     * @param {float} y1 
+     * @param {float} y2 
+     */
+    updateLength(x1, x2, y1, y2){
+        // console(`Updating length:\n x1:${x1}, y1:${y1}, x2:${x2}, y2:${y2}\nLength: ${Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))}`)
+        this.muscle.x = this.getLength(x1, x2, y1, y2)
+    }
 }
 class SmoothMuscle extends Muscle{
+    /**
+     * Takes in the indices of the attached objects, as well as their positions;
+     * @param {int} index1 
+     * @param {int} index2 
+     * @param {float} obj1X 
+     * @param {float} obj1Y 
+     * @param {float} obj2X 
+     * @param {float} obj2Y 
+     */
     constructor(index1, index2, obj1X, obj1Y, obj2X, obj2Y){
 
         super(index1, index2)
@@ -151,11 +218,18 @@ class SmoothMuscle extends Muscle{
         
         
     }
-    //returns the force vector for obj2
-    update(obj1, obj2, t){
+    /**
+     * Takes in the two objects the muscle connects to
+     * and some dt
+     * @param {Rect} obj1 
+     * @param {Rect} obj2 
+     * @param {float} dt 
+     * @returns {array} component forces
+     */
+    update(obj1, obj2, dt){
         
         //contraction force
-        let force = this.muscle.contract(t);
+        let force = this.muscle.contract(dt);
         //break down force into component forces
 
         // console("Force:", force)
@@ -172,10 +246,7 @@ class SmoothMuscle extends Muscle{
         return [forceX, forceY]
         
     }
-    updateLength(x1, x2, y1, y2){
-        // console(`Updating length:\n x1:${x1}, y1:${y1}, x2:${x2}, y2:${y2}\nLength: ${Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))}`)
-        this.muscle.x = this.getLength(x1, x2, y1, y2)
-    }
+
 }
 class SkeletalMuscle extends Muscle{
     constructor(index1, index2, x1, y1, x2, y2){
@@ -197,10 +268,18 @@ class SkeletalMuscle extends Muscle{
         }
         this.muscle = new SkeletalFiber(this.getLength(x1, x2, y1, y2), params)
 
+        //ensures no default stimulation
         this.muscle.setStimulation(0, "none");
-        
-        this.active = true;
     }
+    /**
+     * Takes in the two connected objects as well as the time step
+     * and the current time(used in calculating activation of the muscle).
+     * @param {Rect} obj1 
+     * @param {Rect} obj2 
+     * @param {float} dt 
+     * @param {float} t 
+     * @returns {array} component forces
+     */
     update(obj1, obj2, dt, t){
 
         // console("T in phys sim:" + t)
@@ -225,30 +304,15 @@ class SkeletalMuscle extends Muscle{
         return [forceX, forceY]
 
     }
+    /**
+     * 
+     * @param {*} x1 
+     * @param {*} x2 
+     * @param {*} y1 
+     * @param {*} y2 
+     */
     updateLength(x1, x2, y1, y2){
         // console(`Updating length:\n x1:${x1}, y1:${y1}, x2:${x2}, y2:${y2}\nLength: ${Math.sqrt( ((x1 - x2)** 2) + ((y1 - y2) ** 2))}`)
         this.muscle.x = this.getLength(x1, x2, y1, y2)
-    }
-    setActive(){
-        this.active = true;
-    }
-
-    setInactive(){
-        this.active = false;
-    }
-}
-class SoftBody{
-    constructor(){
-
-    }
-    update(dt){
-
-    }
-}
-class SoftBody1d{
-    constructor(length, elasticity, mass){
-        this.mass = mass;
-        this.length = length;
-        this.elasticity = elasticity;
     }
 }

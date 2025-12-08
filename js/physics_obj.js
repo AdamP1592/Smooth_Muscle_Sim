@@ -25,18 +25,25 @@ class physicsObject{
         //returns the dxdt and dvdt
         return [vx, vy, ax, ay];
     }
-    predictStep(t, forceX = this.force_x, forceY = this.force_y){
+    /**
+     * predicts x, y vx, vy from component forces
+     * @param {float} dt 
+     * @param {float} forceX 
+     * @param {float} forceY 
+     * @returns {object}{newVelX, newVelY, newX, newY}
+     */
+    predictStep(dt, forceX = this.force_x, forceY = this.force_y){
         // f = ma a = f/m
         // 
         let accelerationX =  forceX / this.mass;
         let accelerationY = forceY / this.mass;
 
         // a = m/s^2, v = m/s
-        let newVelocityX = (accelerationX * t) + this.velocityX;
-        let newVelocityY = (accelerationY * t) + this.velocityY;
+        let newVelocityX = (accelerationX * dt) + this.velocityX;
+        let newVelocityY = (accelerationY * dt) + this.velocityY;
 
-        let x = (newVelocityX * t) + this.x;
-        let y = (newVelocityY * t) + this.y;
+        let x = (newVelocityX * dt) + this.x;
+        let y = (newVelocityY * dt) + this.y;
 
         let output = {
             newVelX: newVelocityX,
@@ -47,12 +54,20 @@ class physicsObject{
 
         return output;
     }
+    /**
+     * accumulates force over a given timestep
+     * @param {float} force_x 
+     * @param {float} force_y 
+     */
     addForce(force_x, force_y){  
         this.force_x += force_x;
         this.force_y += force_y;
-
-        return true;
     }
+    /**
+     * Performs the movement and resets force to 0
+     * @param {float} dt 
+     * @returns {array} component velocity derivatives dvx and dvy
+     */
     move(dt){
         let oldVX = this.velocityX;
         let oldVY = this.velocityY;
@@ -62,34 +77,41 @@ class physicsObject{
         let frictionY = 0;
 
         const staticFrictionMagnitude = this.mass * 9.81 * this.staticFrictionConstant;
-        
+
+        // Converts compoenent forces to actual force
         let appliedForce = Math.sqrt(Math.pow(this.force_x, 2) + Math.pow(this.force_y, 2));
         
-        //scale eps with dt
+        // scale eps with dt
         let eps = 1e-6 * dt;
         if(Math.abs(this.velocityX) < eps && Math.abs(this.velocityY) < eps && appliedForce <= staticFrictionMagnitude){
+            // applies static friction(object wont move)
             this.velocityX = 0;
             this.velocityY = 0;
             frictionX = -this.force_x;
             frictionY = -this.force_y;
         }else{
+            // applies kinetic friction
             const kineticFrictionMagnitude = this.mass * 9.81 * this.kineticFrictionConstant;
             const speed = Math.sqrt(Math.pow(this.velocityX, 2) + Math.pow(this.velocityY, 2));
-            if(speed > eps){
+            if(speed > eps){// prevent devision by zero
                 frictionX = -(this.velocityX / speed) * kineticFrictionMagnitude;
                 frictionY = -(this.velocityY / speed) * kineticFrictionMagnitude;
             }
         }
-
+        // Total force with friction
         let totalForceX = this.force_x + frictionX;
         let totalForceY = this.force_y + frictionY;
 
+        // get acceleration
         let accelerationX = totalForceX / this.mass;
         let accelerationY = totalForceY / this.mass;
         
+        // change velocity with acceleration
         this.velocityX += accelerationX * dt;
         this.velocityY += accelerationY * dt;
 
+        // if velocity passes through zero just set it to zero
+        // to prevent jitter
         if (oldVX * this.velocityX < 0) {
             this.velocityX = 0;
         }
@@ -97,20 +119,21 @@ class physicsObject{
             this.velocityY = 0;
         }
         
-
+        // updates position
         this.x += (this.velocityX * dt);
         this.y += (this.velocityY * dt);
 
-        //console.log(`vx: ${this.velocityX}, vy: ${this.velocityY}, forceX: ${this.force_x}, forceY: ${this.force_y}, frictionX: ${frictionX}, frictionY: ${frictionY}, eps: ${eps}`)
-
+        //calculates dvx and dvy
         let deltaVX = this.velocityX - oldVX;
         let deltaVY = this.velocityY - oldVY;
 
-        this.force_x = 0;
-        this.force_y = 0;
+        this.resetForces()
 
-        return [totalForceX, totalForceY];
+        return [deltaVX, deltaVY];
     }
+    /**
+     * Helper function to reset all forces
+     */
     resetForces(){
         this.force_x = 0;
         this.force_y = 0;
