@@ -293,22 +293,25 @@ function leftClickCanvas(event) {
 
   const mouseX = event.clientX - canvas.getBoundingClientRect().left;
   const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+  const graphX = mouseX / scalingFactor;
+  const graphY = mouseY / scalingFactor
   
   let borderCount = 0;
   //to prevent having to index a list
   let objectsWithBorders = {};
-
+  console.log("Attempting to make a muscle")
+  console.log(`MouseX: ${mouseY}, MouseY: ${mouseX}, graphX: ${mouseX/scalingFactor}, graphY: ${mouseY/scalingFactor}`)
   for(let i = 0; i < sim.objects.length; i++){
     let obj = sim.objects[i];
-    let [canvasX, canvasY] = convertRawCoordsToCanvas(obj.x, obj.y);
-    
-    let width = obj.width * scalingFactor;
-    let height = obj.height * scalingFactor;
 
     if(controlPressed){
+      //all squares are positioned center to x and y
+      let widthModifier = obj.width/2;
+      let heightModifier = obj.height/2;
       //if there was a square that got clicked
-      if (mouseX >= canvasX && mouseX <= canvasX + width &&
-          mouseY >= canvasY && mouseY <= canvasY + height) {
+      if (graphX >= obj.x - widthModifier && graphX <= obj.x + widthModifier &&
+          graphY >= obj.y - heightModifier && graphY <= obj.y + heightModifier) {
+          console.log("Selecting: ", i)
           //if it hasn't been clicked yet, add it to the list of clicked
           if(obj.border == false){
             obj.border = true;
