@@ -1,12 +1,13 @@
 //sets the graphing coordinate constraints
-const maxX = 100;
-const maxY = 100;
+const maxX = 150;
+const maxY = 150;
 //pre creates variables for all the main parts of the sim
 var focused_button = null;
 var canvas = null;
 var ctx = null;
 var sim = null;
 var scalingFactor = null;
+var renderingScale = 1;
 
 //for ctrl + (key) events
 var controlPressed = false;
@@ -160,6 +161,7 @@ function draw(currentTime){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fill();
 
+    drawGrid();
     // draw muscles
     drawMuscles();
 
@@ -179,14 +181,47 @@ function draw(currentTime){
   }
   requestAnimationFrame(draw); 
 }
+function drawGrid(){
+  ctx.strokeStyle = '#a6a6a6';
+  ctx.fillStyle = '#a6a6a6'
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  let fontSize =  String(4 * scalingFactor);
+  ctx.font = fontSize + 'px bold arial'
+  ctx.lineWidth = 1;
+  for(let i = 0; i < Math.round(maxX / 10); i++){
+    ctx.beginPath();
+    //move to some incriment of 10 in graph coords 
+    let graphingCoord = i * 10;
+    let canvasCoord = graphingCoord * scalingFactor;
+    let graphingCoordString = String(graphingCoord);
 
+    //draw x lines
+    ctx.fillText(graphingCoordString, canvasCoord, 0);
+    ctx.moveTo(canvasCoord, 0);
+    ctx.lineTo(canvasCoord, rect.height);
+    ctx.stroke();
+    
+    //draw y lines
+    ctx.fillText(graphingCoordString, 0, canvasCoord);
+    ctx.moveTo(0, canvasCoord);
+    ctx.lineTo(rect.width, canvasCoord);
+    ctx.stroke();
+  }
+  
+}
 function resizeCanvas(){
   rect = canvas.getBoundingClientRect();
   canvas.width = rect.width;
   canvas.height = rect.height;
-  scalingFactor = rect.width/150;
+
+  scalingFactor = rect.width/maxX;
+
   oldWidth = canvas.width;
   oldHeight = canvas.height;
+
+  //let spawnButtons = document.getElementsByClassName("spawn_button");
+  
   
 }
 window.addEventListener("load", function() {
@@ -204,36 +239,40 @@ window.addEventListener("load", function() {
   requestAnimationFrame(draw);
 });
 /**
- * sets up the first demo visualization of the simulation
+ * sets up the first demo visualization of the simulation(a cube following a circular motion)
  */
 function demo1(){
   //create objects
-  sim.createMoveableSquare(40, 40);//obj0
-  sim.createFixedSquare(60, 60); //obj1
-  sim.createFixedSquare(60, 20)//obj2
-  sim.createFixedSquare(20, 60)//obj3
-  sim.createFixedSquare(20, 20)//obj4
+  sim.createMoveableSquare(50, 50);//obj0
+  sim.createFixedSquare(30, 30); //obj1
+  sim.createFixedSquare(21.715729, 50)//obj2
+  sim.createFixedSquare(30, 70)//obj3
+  sim.createFixedSquare(78.284271, 50)//obj4
+  sim.createFixedSquare(50, 78.284271)//obj5
+  sim.createFixedSquare(70, 70)//obj6
+  sim.createFixedSquare(70, 30)//obj7
+  sim.createFixedSquare(50, 21.715729)//obj8
+
+  let numFixed = 8;
   
-  //create muscles
-  sim.createMuscle(sim.objects[0], sim.objects[1], 0, 1)//m0
-  sim.createMuscle(sim.objects[0], sim.objects[2], 0, 2)//m1
-  sim.createMuscle(sim.objects[0], sim.objects[3], 0, 3)//m2
-  sim.createMuscle(sim.objects[0], sim.objects[4], 0, 4)//m3
+  let freq = 1;
+  // creates once muscle for each fixed object
+  // shifts the activation pattern so that each muscle is activated freq
+  // times a second and their activation peaks are evenly spaced across the full
+  // stimulation cycle
+  for(let i = 0; i < numFixed; i++){
+    sim.createMuscle(sim.objects[0], sim.objects[1], 0, i + 1)
 
-
-  sim.forceAddingElements[0].muscle.setStimulation(0, "sin", 1)
-  sim.forceAddingElements[1].muscle.setStimulation(0.25, "sin", 1)
-  sim.forceAddingElements[2].muscle.setStimulation(0.5, "sin", 1)
-  sim.forceAddingElements[2].muscle.setStimulation(0.75, "sin", 1)
+    let shift = (i / numFixed) * (1/freq);
+    sim.forceAddingElements[i].muscle.setStimulation(shift, "sin", freq)
+  }
   
 }
 
 function keyPressed(event){
   if(event.key === "Control"){
+    console.log("Control Pressed")
     controlPressed = true;
-  }
-  if(event.key === "Space"){
-    sleep(1000);
   }
 }
 function keyReleased(event){

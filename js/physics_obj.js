@@ -1,4 +1,4 @@
-class physicsObject{
+class PhysicsObject{
     constructor(x, y, mass){
         this.x = x;
         this.y = y;
