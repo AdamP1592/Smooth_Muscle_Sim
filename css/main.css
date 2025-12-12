@@ -3,7 +3,6 @@
     padding: 0;
 }
 body{
-    width:75%;
     margin:auto;
 }
 .noMargin{
@@ -15,7 +14,7 @@ body{
     max-height: 100vh;
     display:flex;
     flex-wrap:nowrap;
-    justify-content: center;
+    justify-content: flex-start;
 }
 .justify-left{
     justify-content: flex-start !important;
@@ -44,7 +43,6 @@ canvas{
     border:none;
     cursor: grab;
     padding:5%;
-    
 }
 .spawn_button:hover{
     background-color:rgb(80, 157, 86);

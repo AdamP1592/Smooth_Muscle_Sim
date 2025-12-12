@@ -34,6 +34,8 @@ var isPaused = false;
 var oldWidth = 0;
 var oldHeight = 0;
 var resizeTimeout;
+var defaultScrollX = 0;
+var defaultScrollY = 0;
 
 //hover event stuff
 var mouseHoverX = 0;
@@ -50,7 +52,6 @@ var mouseHoverY = 0;
  */
 function isWithinRect(x, y, rect, positioning="centered"){
   // IF ANYTHING IS POSITIONED IN A DIFFERENT WAY(eg. bottomright) ADD THEM HERE
-
   let leftSide = rect.x;
   let topSide = rect.y;
 
@@ -72,12 +73,43 @@ function isWithinRect(x, y, rect, positioning="centered"){
 
   return (x > leftSide && x < rightSide) && (y > topSide  && y < bottomSide)
 }
-function convertPageCoordsToGraph(x, y){
-  const canvasX = x - rect.left;
-  const canvasY = y - rect.top;
+/**
+ * 
+ * @param {*} x 
+ * @param {*} y 
+ * @returns 
+ */
+function convertClientCoordsToGraph(x, y, debug=false){
+
+  x += window.scrollX;
+  y += window.scrollY;
+  // For some reason when the page loads with a default x offset, client.bounding
+  // rect gives a negative value for something you can actually scroll to, even
+  // if I get the bounding rect in this function
+
+  /* This is technically how you can resolve it, but it's more efficient to just clamp
+  if(rect.left == -window.scrollX && window.scrollX != 0){
+    x -= window.scrollX
+  }
+  if(rect.top == -window.scrollY && window.scrollY != 0){
+    y -= window.scrollY;
+  }
+  */
+  const canvasX = x - Math.max(0, rect.left);
+  const canvasY = y - Math.max(0, rect.top);
   const graphX = canvasX / scalingFactor;
   const graphY = canvasY / scalingFactor;
-  
+  if(debug){
+    console.log(`
+    x: ${Math.round(x)}, y:${Math.round(y)}
+    ScrollX: ${window.scrollX}, ScrollY:${window.scrollY}
+    CanvasX: ${canvasX}, CanvasY:${canvasY}
+    GraphX: ${graphX}, GraphY: ${graphY}
+    RectLeft: ${rect.left}, RectTop:${rect.top}
+    `);
+    console.log(rect)
+  }
+
   return [graphX, graphY]
 }
 /**
@@ -109,9 +141,8 @@ function click_released(event){
   let x = event.clientX;
   let y = event.clientY;
 
-  let [graphX, graphY] = convertPageCoordsToGraph(x + window.scrollX, y + window.scrollY)
-
-  x 
+  let [graphX, graphY] = convertClientCoordsToGraph(x, y, true)
+  console.log(x, y, graphX, graphY)
   //in bounds
   if(!( graphX < 0 || graphX < 0 || graphX > maxX || graphX > maxY)){
 
@@ -297,8 +328,8 @@ function resizeCanvas(){
   }
   rect = canvas.getBoundingClientRect();
 
-  
-
+  console.log(canvas)
+  console.log(rect.left)
 
   scalingFactor = rect.width/maxX;
 
@@ -314,7 +345,7 @@ function resizeCanvas(){
   
   //let spawnButtons = document.getElementsByClassName("spawn_button");
   
-  
+  rect = canvas.getBoundingClientRect();
 }
 /**
  * sets up the first demo visualization of the simulation(a cube following a circular motion)
@@ -370,7 +401,7 @@ function keyReleased(event){
  */
 function leftClickCanvas(event) {
   event.preventDefault();
-  const[graphX, graphY] = convertPageCoordsToGraph(event.clientX + window.scrollX, event.pageY + window.scrollY)
+  const[graphX, graphY] = convertClientCoordsToGraph(event.clientX, event.pageY, true)
 
   let borderCount = 0;
   //to prevent having to index a list
@@ -419,17 +450,17 @@ function leftClickCanvas(event) {
   }
 }
 function checkHoverEvent(event){
-  mouseHoverX = event.pageX;
-  mouseHoverY = event.pageY;
+  mouseHoverX = event.clientX;
+  mouseHoverY = event.clientY;
   
-  let [graphX, graphY] = convertPageCoordsToGraph(mouseHoverX, mouseHoverY)
+  let [graphX, graphY] = convertClientCoordsToGraph(mouseHoverX, mouseHoverY)
 
   for(let i = 0; i < sim.objects.length; i++){
 
     let obj = sim.objects[i];
     if(isWithinRect(graphX, graphY, obj)){
-      propView.style.left = (mouseHoverX) + "px";
-      propView.style.top = (mouseHoverY) + "px";
+      propView.style.left = (mouseHoverX + window.scrollX) + "px";
+      propView.style.top = (mouseHoverY + window.scrollY) + "px";
       let objInfo = "";
       let objInfoDict = obj.getObjectInfo();
       let len = 0;
@@ -480,6 +511,10 @@ function canvasLeave(){
 window.addEventListener("load", function() {
   sim = new PhysicsSim();
   demo1();
+
+  defaultScrollX = window.scrollX;
+  defaultScrollY = window.scrollY;
+
   propView = document.getElementById("propertyView");
 
   canvas = document.getElementById("phys_sim");
@@ -493,6 +528,7 @@ window.addEventListener("load", function() {
 
   create_onclick_events();
   lastFrameTime = performance.now();
+  window.dispatchEvent(new Event('resize'));
   resizeCanvas();
   startTime = performance.now()
   requestAnimationFrame(draw);
